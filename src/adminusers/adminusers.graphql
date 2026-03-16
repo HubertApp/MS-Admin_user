@@ -1,0 +1,32 @@
+type AdminUser {
+    id: Int
+    firstname: String
+    lastname: String
+    email: String
+    password: String
+    authLevel: Int
+}
+
+input CreateAdminUserInput {
+    id: Int
+    firstname: String
+    lastname: String
+    email: String
+    password: String
+    authLevel: Int
+}
+
+input UpdateAdminUserInput {
+  id: Int!
+}
+
+type Query {
+  adminusers: [User]!
+  adminuser(id: Int!): User
+}
+
+type Mutation {
+  createAdminUser(createAdminUserInput: CreateAdminUserInput!): AdminUser!
+  updateAdminUser(updateAdminUserInput: UpdateAdminUserInput!): AdminUser!
+  removeAdminUser(id: Int!): AdminUser
+}
