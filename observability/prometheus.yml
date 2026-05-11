@@ -1,9 +1,0 @@
-﻿global:
-  scrape_interval: 15s
-  evaluation_interval: 15s
-
-scrape_configs:
-  - job_name: ms-admin-user
-    static_configs:
-      - targets: ['service-adminuser:9464']
-    metrics_path: /metrics

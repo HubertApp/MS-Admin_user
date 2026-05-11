@@ -30,51 +30,9 @@ services:
       - .env
     depends_on:
       - mongodb
-      - tempo
     ports:
       - "4000:4000"
-      - "127.0.0.1:9464:9464"
-    restart: unless-stopped
-
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: prometheus
-    volumes:
-      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml
-    ports:
-      - "127.0.0.1:9090:9090"
-    restart: unless-stopped
-
-  tempo:
-    image: grafana/tempo:latest
-    container_name: tempo
-    command: ["-config.file=/etc/tempo/tempo.yml"]
-    volumes:
-      - ./observability/tempo.yml:/etc/tempo/tempo.yml
-      - tempo_data:/var/tempo
-    ports:
-      - "127.0.0.1:3200:3200"
-      - "127.0.0.1:4317:4317"
-      - "127.0.0.1:4318:4318"
-    restart: unless-stopped
-
-  grafana:
-    image: grafana/grafana:latest
-    container_name: grafana
-    environment:
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
-    volumes:
-      - ./observability/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
-      - grafana_data:/var/lib/grafana
-    ports:
-      - "127.0.0.1:3000:3000"
-    depends_on:
-      - prometheus
-      - tempo
     restart: unless-stopped
 
 volumes:
   mongo_data:
-  grafana_data:
-  tempo_data:
