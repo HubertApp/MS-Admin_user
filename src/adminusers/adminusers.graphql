@@ -1,32 +1,38 @@
-type AdminUser {
-    id: Int
-    firstname: String
-    lastname: String
-    email: String
-    password: String
-    authLevel: Int
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.0", import: ["@key"])
+
+type AdminUser @key(fields: "id") {
+  id: ID!
+  firstname: String!
+  lastname: String!
+  email: String!
+  authLevel: Int!
 }
 
 input CreateAdminUserInput {
-    id: Int
-    firstname: String
-    lastname: String
-    email: String
-    password: String
-    authLevel: Int
+  firstname: String!
+  lastname: String!
+  email: String!
+  password: String!
+  authLevel: Int!
 }
 
 input UpdateAdminUserInput {
-  id: Int!
+  id: ID!
+  firstname: String
+  lastname: String
+  email: String
+  password: String
+  authLevel: Int
 }
 
 type Query {
-  adminusers: [User]!
-  adminuser(id: Int!): User
+  adminUsers: [AdminUser!]!
+  adminUser(id: ID!): AdminUser
 }
 
 type Mutation {
   createAdminUser(createAdminUserInput: CreateAdminUserInput!): AdminUser!
-  updateAdminUser(updateAdminUserInput: UpdateAdminUserInput!): AdminUser!
-  removeAdminUser(id: Int!): AdminUser
+  updateAdminUser(updateAdminUserInput: UpdateAdminUserInput!): AdminUser
+  removeAdminUser(id: ID!): AdminUser
 }
