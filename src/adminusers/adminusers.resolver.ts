@@ -94,3 +94,17 @@ export class AdminUsersReferenceResolver {
     return this.adminUsersService.findOne(reference.id);
   }
 }
+
+// Pas de FederatedAuthGuard ici : c'est justement la query qui sert à s'authentifier.
+@Resolver('AdminUser')
+export class AdminUsersAuthResolver {
+  constructor(private readonly adminUsersService: AdminUsersService) {}
+
+  @Query('byEmailAndPassword')
+  async byEmailAndPassword(
+    @Args('email') email: string,
+    @Args('password') password: string,
+  ) {
+    return this.adminUsersService.findByEmailAndPassword(email, password);
+  }
+}

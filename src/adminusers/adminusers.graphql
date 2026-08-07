@@ -29,6 +29,7 @@ input UpdateAdminUserInput {
 type Query {
   adminUsers: [AdminUser!]!
   adminUser(id: ID!): AdminUser
+  byEmailAndPassword(email: String!, password: String!): AdminUser
 }
 
 type Mutation {

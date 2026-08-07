@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { CreateAdminUserInput } from './dto/create-admin-user.input';
 import { UpdateAdminUserInput } from './dto/update-admin-user.input';
@@ -24,6 +24,15 @@ export class AdminUsersService {
     const admin = await this.adminUsersRepository.findById(id);
     if (!admin) {
       throw new NotFoundException(`Admin avec l'id ${id} non trouvé`);
+    }
+    return admin;
+  }
+
+  async findByEmailAndPassword(email: string, password: string): Promise<AdminUserDocument> {
+    const admin = await this.adminUsersRepository.findByEmailWithPassword(email);
+    const match = admin ? await bcrypt.compare(password, admin.password) : false;
+    if (!admin || !match) {
+      throw new UnauthorizedException('Email ou mot de passe incorrect');
     }
     return admin;
   }
