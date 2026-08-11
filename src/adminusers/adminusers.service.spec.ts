@@ -102,10 +102,10 @@ describe('AdminUsersService', () => {
   // ------------------------------------------------------------------
   describe('findOne', () => {
     it('retourne l\'admin quand il existe', async () => {
-      const admin = { id: 'abc123', firstname: 'Jean' } as any;
+      const admin = { id: '507f1f77bcf86cd799439011', firstname: 'Jean' } as any;
       repository.findById.mockResolvedValue(admin);
 
-      const result = await service.findOne('abc123');
+      const result = await service.findOne('507f1f77bcf86cd799439011');
 
       expect(result).toBe(admin);
     });
@@ -131,10 +131,10 @@ describe('AdminUsersService', () => {
       let capturedPassword = '';
       repository.update.mockImplementation(async (_id, data) => {
         capturedPassword = (data as any).password;
-        return { id: 'abc123', ...(data as any) } as any;
+        return { id: '507f1f77bcf86cd799439011', ...(data as any) } as any;
       });
 
-      await service.update('abc123', { id: 'abc123', password: 'NewPass1' } as any);
+      await service.update('507f1f77bcf86cd799439011', { id: '507f1f77bcf86cd799439011', password: 'NewPass1' } as any);
 
       expect(capturedPassword).not.toBe('NewPass1');
       const match = await bcrypt.compare('NewPass1', capturedPassword);
@@ -142,19 +142,19 @@ describe('AdminUsersService', () => {
     }, 10_000);
 
     it('ne touche pas le champ password quand il n\'est pas fourni', async () => {
-      repository.update.mockResolvedValue({ id: 'abc123', firstname: 'Marie' } as any);
+      repository.update.mockResolvedValue({ id: '507f1f77bcf86cd799439011', firstname: 'Marie' } as any);
 
-      await service.update('abc123', { id: 'abc123', firstname: 'Marie' } as any);
+      await service.update('507f1f77bcf86cd799439011', { id: '507f1f77bcf86cd799439011', firstname: 'Marie' } as any);
 
       const [, data] = repository.update.mock.calls[0];
       expect((data as any).password).toBeUndefined();
     });
 
     it('retourne l\'admin mis à jour', async () => {
-      const updated = { id: 'abc123', firstname: 'Marie' } as any;
+      const updated = { id: '507f1f77bcf86cd799439011', firstname: 'Marie' } as any;
       repository.update.mockResolvedValue(updated);
 
-      const result = await service.update('abc123', { id: 'abc123', firstname: 'Marie' } as any);
+      const result = await service.update('507f1f77bcf86cd799439011', { id: '507f1f77bcf86cd799439011', firstname: 'Marie' } as any);
 
       expect(result).toBe(updated);
     });
@@ -173,10 +173,10 @@ describe('AdminUsersService', () => {
   // ------------------------------------------------------------------
   describe('remove', () => {
     it('retourne l\'admin supprimé', async () => {
-      const admin = { id: 'abc123' } as any;
+      const admin = { id: '507f1f77bcf86cd799439011' } as any;
       repository.delete.mockResolvedValue(admin);
 
-      const result = await service.remove('abc123');
+      const result = await service.remove('507f1f77bcf86cd799439011');
 
       expect(result).toBe(admin);
     });

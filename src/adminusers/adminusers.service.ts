@@ -1,9 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { Types } from 'mongoose';
 import { CreateAdminUserInput } from './dto/create-admin-user.input';
 import { UpdateAdminUserInput } from './dto/update-admin-user.input';
 import { AdminUsersRepository } from './repository/adminUsers.repository';
 import { AdminUserDocument } from './schema/adminUser.schema';
+import { UnauthorizedException } from './exceptions/unauthorized.exception';
 
 const SALT_ROUNDS = 12;
 
@@ -21,6 +23,9 @@ export class AdminUsersService {
   }
 
   async findOne(id: string): Promise<AdminUserDocument> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new NotFoundException(`Admin avec l'id ${id} non trouvé`);
+    }
     const admin = await this.adminUsersRepository.findById(id);
     if (!admin) {
       throw new NotFoundException(`Admin avec l'id ${id} non trouvé`);
@@ -28,7 +33,19 @@ export class AdminUsersService {
     return admin;
   }
 
+  async findByEmailAndPassword(email: string, password: string): Promise<AdminUserDocument> {
+    const admin = await this.adminUsersRepository.findByEmailWithPassword(email);
+    const match = admin ? await bcrypt.compare(password, admin.password) : false;
+    if (!admin || !match) {
+      throw new UnauthorizedException('Email ou mot de passe incorrect');
+    }
+    return admin;
+  }
+
   async update(id: string, updateAdminUserInput: UpdateAdminUserInput): Promise<AdminUserDocument> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new NotFoundException(`Admin avec l'id ${id} non trouvé`);
+    }
     if (updateAdminUserInput.password) {
       updateAdminUserInput.password = await bcrypt.hash(updateAdminUserInput.password, SALT_ROUNDS);
     }
@@ -40,6 +57,9 @@ export class AdminUsersService {
   }
 
   async remove(id: string): Promise<AdminUserDocument> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new NotFoundException(`Admin avec l'id ${id} non trouvé`);
+    }
     const deletedAdmin = await this.adminUsersRepository.delete(id);
     if (!deletedAdmin) {
       throw new NotFoundException(`Admin avec l'id ${id} non trouvé`);

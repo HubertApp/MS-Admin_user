@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AdminUsersResolver, AdminUsersReferenceResolver } from './adminusers.resolver';
 import { AdminUsersService } from './adminusers.service';
 import { UnauthorizedException } from './exceptions/unauthorized.exception';
+import { FederatedAuthGuard } from './guards/federated-auth.guard';
 
 const SUPER_ADMIN = { id: 'admin-1', role: 'SUPER_ADMIN', email: 'admin@test.com', pseudo: 'admin' };
 const REGULAR_USER = { id: 'user-1', role: 'USER', email: 'user@test.com', pseudo: 'user' };
@@ -154,6 +155,29 @@ describe('AdminUsersResolver', () => {
     it('un non-SUPER_ADMIN ne peut pas supprimer un admin', async () => {
       await expect(resolver.remove('user-1', REGULAR_USER)).rejects.toThrow(UnauthorizedException);
       expect(service.remove).not.toHaveBeenCalled();
+    });
+  });
+
+  // ------------------------------------------------------------------
+  // Métadonnées du guard — vérifie que @UseGuards est bien appliqué
+  // ------------------------------------------------------------------
+  describe('application du FederatedAuthGuard', () => {
+    it('FederatedAuthGuard est enregistré sur la classe AdminUsersResolver', () => {
+      const guards: unknown[] = Reflect.getMetadata('__guards__', AdminUsersResolver) ?? [];
+      expect(guards).toContain(FederatedAuthGuard);
+    });
+
+    it('AdminUsersReferenceResolver n\'a pas de guard (résolveur de fédération interne)', () => {
+      const guards: unknown[] = Reflect.getMetadata('__guards__', AdminUsersReferenceResolver) ?? [];
+      expect(guards).not.toContain(FederatedAuthGuard);
+    });
+
+    it('le guard est appliqué au niveau classe, pas méthode par méthode', () => {
+      const classGuards: unknown[] = Reflect.getMetadata('__guards__', AdminUsersResolver) ?? [];
+      const methodGuards: unknown[] = Reflect.getMetadata('__guards__', AdminUsersResolver.prototype, 'create') ?? [];
+
+      expect(classGuards).toContain(FederatedAuthGuard);
+      expect(methodGuards).not.toContain(FederatedAuthGuard);
     });
   });
 });

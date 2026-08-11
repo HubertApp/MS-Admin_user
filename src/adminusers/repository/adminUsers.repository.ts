@@ -16,4 +16,8 @@ export class AdminUsersRepository extends MongooseBaseRepository<AdminUserDocume
     return this.model.findOne({ email }).exec();
   }
 
+  async findByEmailWithPassword(email: string): Promise<AdminUserDocument | null> {
+    return this.model.findOne({ email }).select('+password').exec();
+  }
+
 }
