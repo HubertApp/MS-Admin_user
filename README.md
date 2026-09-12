@@ -1,99 +1,98 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# MS-Admin_user
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Microservice NestJS responsable de la gestion des comptes administrateurs de HubertApp (comptes du personnel, avec e-mail et mot de passe), distincts des comptes utilisateurs finaux gérés par MS-User (connexion Google).
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Rôle dans l'architecture HubertApp
 
-## Description
+MS-Admin_user est un subgraph Apollo Federation (fédération v2.0), exposé au gateway comme les autres microservices du projet. Il a deux responsabilités :
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+1. Authentifier un administrateur par e-mail et mot de passe (requête `byEmailAndPassword`), utilisée par la mutation `loginAdmin` de MS-Auth.
+2. Gérer le cycle de vie des comptes administrateurs (création, consultation, mise à jour, suppression), avec un contrôle d'accès par rôle.
 
-## Project setup
+## Stack technique
+
+* NestJS 11, GraphQL en mode schéma (Apollo Federation v2, `@nestjs/apollo`), Apollo Server 5.
+* MongoDB via Mongoose.
+* bcrypt pour le hachage des mots de passe (12 tours de sel).
+* `@nestjs/throttler` pour la limitation de débit (100 requêtes par minute par défaut).
+* Jest pour les tests unitaires et d'intégration.
+
+## Démarrage rapide
 
 ```bash
-$ npm install
+npm ci
+cp .env.example .env   # puis renseigner les valeurs, voir tableau ci-dessous
+npm run start:dev
 ```
 
-## Compile and run the project
+Avec le Makefile fourni :
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+make install   # npm ci
+make lint      # eslint
+make test      # jest avec couverture
+make build     # nest build
+make validate  # install + lint + test + build, utilisé en CI
 ```
 
-## Run tests
+Docker : `make docker-build` construit l'image `ms-admin-user:local` ; `make docker-up` / `make docker-down` pilotent le `docker-compose.yml` fourni pour un environnement de développement local (service plus MongoDB plus Mongo Express).
+
+## Variables d'environnement
+
+| Variable | Rôle |
+|---|---|
+| `PORT` | Port d'écoute HTTP du service |
+| `NODE_ENV` | `production` désactive le playground GraphQL |
+| `MONGO_URL` | Connexion MongoDB pour la persistance des comptes administrateurs |
+| `ALLOWED_ORIGINS` | Liste d'origines autorisées pour le CORS, séparées par des virgules |
+| `INTERNAL_SECRET` | Secret partagé avec le gateway, vérifié en production sur l'en-tête `x-internal-secret` (voir sécurité ci-dessous) |
+| `ME_CONFIG_BASICAUTH_USERNAME` / `ME_CONFIG_BASICAUTH_PASSWORD` | Identifiants de Mongo Express, développement uniquement, à ne jamais exposer en production |
+
+## API GraphQL
+
+```graphql
+type AdminUser @key(fields: "id") {
+  id: ID!
+  firstname: String!
+  lastname: String!
+  email: String!
+  authLevel: Int!
+}
+
+type Query {
+  adminUsers: [AdminUser!]!
+  adminUser(id: ID!): AdminUser
+  byEmailAndPassword(email: String!, password: String!): AdminUser
+}
+
+type Mutation {
+  createAdminUser(createAdminUserInput: CreateAdminUserInput!): AdminUser!
+  updateAdminUser(updateAdminUserInput: UpdateAdminUserInput!): AdminUser
+  removeAdminUser(id: ID!): AdminUser
+}
+```
+
+Règles d'autorisation, appliquées dans le resolver :
+
+* `createAdminUser` et `removeAdminUser` : réservées à un appelant `SUPER_ADMIN`.
+* `adminUsers` (liste complète) : réservée à un appelant `SUPER_ADMIN`.
+* `adminUser(id)` et `updateAdminUser` : autorisées pour un `SUPER_ADMIN`, ou pour l'administrateur consultant ou modifiant son propre profil.
+* `byEmailAndPassword` : aucune garde d'authentification, puisque c'est justement le point d'entrée qui sert à s'authentifier. Le mot de passe est comparé au hachage stocké via bcrypt ; en cas d'échec (e-mail inconnu ou mot de passe incorrect), une erreur générique est renvoyée sans préciser lequel des deux est fautif.
+
+## Authentification interservice
+
+`FederatedAuthGuard` exige les en-têtes `x-auth-state: VALID` et `x-user-id`, injectés par le gateway une fois le token de l'appelant vérifié en amont. Les en-têtes `x-user-role`, `x-user-email`, `x-user-pseudo` sont également repris pour construire le contexte de la requête. En production, une couche supplémentaire est vérifiée : l'en-tête `x-internal-secret` doit correspondre à la variable d'environnement `INTERNAL_SECRET`, ce qui n'est pas le cas dans les autres microservices du projet observés à ce jour (MS-User, MS-notifications). Ce guard fait confiance aux en-têtes transmis sans vérification cryptographique de bout en bout ; une garantie complète suppose un gateway ou un mTLS correctement configuré en amont.
+
+## Point de vigilance connu (intégration avec MS-Auth)
+
+MS-Auth interroge ce service pour authentifier un administrateur (mutation `loginAdmin`), mais la requête envoyée par MS-Auth (`authAdminUserByUserAndPassword(adminUserInput: $input) { email pseudo age role }`) ne correspond pas au schéma actuel de MS-Admin_user, qui expose `byEmailAndPassword(email: String!, password: String!): AdminUser` avec les champs `id`, `firstname`, `lastname`, `email`, `authLevel` (pas de `pseudo`, `age`, ni `role`). En l'état, un appel `loginAdmin` depuis MS-Auth échouera à la validation du schéma GraphQL. À vérifier et aligner des deux côtés avant de considérer la connexion administrateur comme fonctionnelle de bout en bout.
+
+## Tests
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm test         # unitaires
+npm run test:cov # unitaires avec couverture
+npm run test:e2e # bout en bout
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
-"# MS-Admin_user" 
+Les tests unitaires couvrent le resolver (règles d'autorisation par rôle), le service (hachage et vérification bcrypt), le repository, et les guards (`FederatedAuthGuard`, `GqlThrottlerGuard`).
