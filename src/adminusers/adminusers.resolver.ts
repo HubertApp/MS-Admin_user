@@ -1,4 +1,4 @@
-import { Resolver, Query, Mutation, Args, ResolveReference } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, ResolveReference, Directive } from '@nestjs/graphql';
 import { Logger, UseGuards } from '@nestjs/common';
 import { AdminUsersService } from './adminusers.service';
 import { CreateAdminUserInput } from './dto/create-admin-user.input';
@@ -97,10 +97,12 @@ export class AdminUsersReferenceResolver {
 
 // Pas de FederatedAuthGuard ici : c'est justement la query qui sert à s'authentifier.
 @Resolver('AdminUser')
+@Directive('@inaccessible')
 export class AdminUsersAuthResolver {
   constructor(private readonly adminUsersService: AdminUsersService) {}
 
   @Query('byEmailAndPassword')
+  
   async byEmailAndPassword(
     @Args('email') email: string,
     @Args('password') password: string,

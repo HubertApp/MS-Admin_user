@@ -85,7 +85,7 @@ Règles d'autorisation, appliquées dans le resolver :
 
 ## Point de vigilance connu (intégration avec MS-Auth)
 
-MS-Auth interroge ce service pour authentifier un administrateur (mutation `loginAdmin`), mais la requête envoyée par MS-Auth (`authAdminUserByUserAndPassword(adminUserInput: $input) { email pseudo age role }`) ne correspond pas au schéma actuel de MS-Admin_user, qui expose `byEmailAndPassword(email: String!, password: String!): AdminUser` avec les champs `id`, `firstname`, `lastname`, `email`, `authLevel` (pas de `pseudo`, `age`, ni `role`). En l'état, un appel `loginAdmin` depuis MS-Auth échouera à la validation du schéma GraphQL. À vérifier et aligner des deux côtés avant de considérer la connexion administrateur comme fonctionnelle de bout en bout.
+MS-Auth interroge ce service pour authentifier un administrateur (mutation `loginAdmin`), mais la requête envoyée par MS-Auth (`byEmailAndPassword(adminUserInput: $input) { email pseudo age role }`) ne correspond pas au schéma actuel de MS-Admin_user, qui expose `byEmailAndPassword(email: String!, password: String!): AdminUser` avec les champs `id`, `firstname`, `lastname`, `email`, `authLevel` (pas de `pseudo`, `age`, ni `role`). En l'état, un appel `loginAdmin` depuis MS-Auth échouera à la validation du schéma GraphQL. À vérifier et aligner des deux côtés avant de considérer la connexion administrateur comme fonctionnelle de bout en bout.
 
 ## Tests
 
