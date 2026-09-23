@@ -1,4 +1,4 @@
-import { Resolver, Query, Mutation, Args, ResolveReference } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, ResolveReference, Directive } from '@nestjs/graphql';
 import { Logger, UseGuards } from '@nestjs/common';
 import { AdminUsersService } from './adminusers.service';
 import { CreateAdminUserInput } from './dto/create-admin-user.input';
@@ -23,18 +23,7 @@ export class AdminUsersResolver {
 
   constructor(private readonly adminUsersService: AdminUsersService) {}
 
-  @Mutation('createAdminUser')
-  async create(
-    @Args('createAdminUserInput') createAdminUserInput: CreateAdminUserInput,
-    @CurrentAdminUser() user: RequestUser,
-  ) {
-    if (user.role !== SUPER_ADMIN) {
-      this.logger.warn(`Accès refusé à createAdminUser pour userId=${user.id}`);
-      throw new UnauthorizedException('Seul un SUPER_ADMIN peut créer un admin');
-    }
-    this.logger.log(`createAdminUser déclenché par userId=${user.id}`);
-    return this.adminUsersService.create(createAdminUserInput);
-  }
+  
 
   @Query('adminUsers')
   async findAll(@CurrentAdminUser() user: RequestUser) {
@@ -97,10 +86,26 @@ export class AdminUsersReferenceResolver {
 
 // Pas de FederatedAuthGuard ici : c'est justement la query qui sert à s'authentifier.
 @Resolver('AdminUser')
+@Directive('@inaccessible')
 export class AdminUsersAuthResolver {
   constructor(private readonly adminUsersService: AdminUsersService) {}
+  private readonly logger = new Logger(AdminUsersResolver.name);
+
+  @Mutation('createAdminUser')
+  async create(
+    @Args('createAdminUserInput') createAdminUserInput: CreateAdminUserInput,
+    @CurrentAdminUser() user: RequestUser,
+  ) {
+    if (user.role !== SUPER_ADMIN) {
+      this.logger.warn(`Accès refusé à createAdminUser pour userId=${user.id}`);
+      throw new UnauthorizedException('Seul un SUPER_ADMIN peut créer un admin');
+    }
+    this.logger.log(`createAdminUser déclenché par userId=${user.id}`);
+    return this.adminUsersService.create(createAdminUserInput);
+  }
 
   @Query('byEmailAndPassword')
+  
   async byEmailAndPassword(
     @Args('email') email: string,
     @Args('password') password: string,
